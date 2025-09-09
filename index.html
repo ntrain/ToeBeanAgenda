@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toe Bean Agenda (Local)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #8BA981;
+        }
+        .container-main {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-main w-full p-4 md:p-8">
+        <!-- Header -->
+        <header class="w-full max-w-4xl flex items-center justify-between py-4 mb-8 bg-white shadow-md rounded-xl px-6">
+            <div class="flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2a5 5 0 015 5c0 1.94-1.35 3.5-3 4.25V18a2 2 0 01-2 2h0a2 2 0 01-2-2v-6.75c-1.65-.75-3-2.31-3-4.25a5 5 0 015-5zM12 22a2 2 0 01-2-2v-2h4v2a2 2 0 01-2 2z" />
+                </svg>
+                <h1 class="text-3xl font-bold text-gray-800">Toe Bean Agenda</h1>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="app-container" class="w-full max-w-4xl bg-white p-6 shadow-md rounded-xl border-4 border-green-800">
+            <div id="dashboard-view" class="text-center">
+                
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Your Pet's Agenda</h2>
+                <div class="flex items-center justify-end space-x-2 mb-6">
+                    <div id="search-container" class="relative max-w-xs overflow-hidden transition-all duration-500 ease-in-out">
+                        <input type="text" id="search-input" placeholder="Search by pet's name..." class="w-full px-4 py-2 rounded-md border-2 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 transition duration-300">
+                        <div id="loading-indicator" class="text-sm text-indigo-500 mt-2 hidden">Searching...</div>
+                    </div>
+                    <button id="search-toggle-btn" class="p-2 rounded-full hover:bg-gray-200 transition duration-300 hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="schedule-list" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <!-- Schedule cards will be added here -->
+                    <p class="col-span-full text-center text-gray-500 text-lg my-8">Use the search bar to find a pet's schedule.</p>
+                </div>
+                <!-- New combined button and menu -->
+                <div class="mt-8 relative">
+                    <button id="main-action-btn" class="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-lg hover:bg-green-700 transition duration-300">
+                        What would you like to do today?
+                    </button>
+                    <div id="action-menu" class="hidden flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4 mt-4">
+                        <button id="add-schedule-btn" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-lg hover:bg-indigo-700 transition duration-300">
+                            Add New Schedule
+                        </button>
+                        <button id="manage-inventory-btn" class="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-lg hover:bg-gray-700 transition duration-300">
+                            Manage Food Inventory
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Add/Edit Schedule Modal -->
+        <div id="schedule-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 hidden">
+            <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="modal-title" class="text-xl font-bold text-gray-800">Add New Schedule</h3>
+                    <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 transition duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <form id="schedule-form" class="space-y-4">
+                    <div>
+                        <label for="pet-name" class="block text-sm font-medium text-gray-700">Pet's Name</label>
+                        <input type="text" id="pet-name" name="pet-name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
+                    </div>
+                    <div>
+                        <label for="pet-species" class="block text-sm font-medium text-gray-700">Pet Species</label>
+                        <select id="pet-species" name="pet-species" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
+                            <option value="">-- Select --</option>
+                            <option value="cat">Cat</option>
+                            <option value="dog">Dog</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="schedule-type" class="block text-sm font-medium text-gray-700">Schedule Type</label>
+                        <select id="schedule-type" name="schedule-type" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
+                            <option value="">-- Select --</option>
+                            <option value="Feeding">Feeding</option>
+                            <option value="Medicine">Medicine</option>
+                            <option value="Walking">Walking</option>
+                            <option value="Grooming">Grooming</option>
+                            <option value="Cleaning">Cleaning (Dishes/Bowls)</option>
+                            <option value="Vet Appointment">Vet Appointment</option>
+                        </select>
+                    </div>
+                    <!-- Fields specific to a schedule type -->
+                    <div id="food-brand-container" class="hidden">
+                        <label for="food-brand" class="block text-sm font-medium text-gray-700">Food Brand</label>
+                        <input type="text" id="food-brand" name="food-brand" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
+                    </div>
+                    <div id="vet-type-container" class="hidden">
+                        <label for="vet-type" class="block text-sm font-medium text-gray-700">Appointment Type</label>
+                        <select id="vet-type" name="vet-type" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition duration-200">
+                            <option value="" disabled selected>Select an appointment type</option>
+                            <option value="Check Up">Check Up</option>
+                            <option value="Medicine Check">Medicine Check</option>
+                            <option value="Arthritis Shot">Arthritis Shot</option>
+                            <option value="Yearly Shots">Yearly Shots</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="schedule-date" class="block text-sm font-medium text-gray-700">Date</label>
+                        <input type="date" id="schedule-date" name="schedule-date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
+                    </div>
+                    <div>
+                        <label for="schedule-time" class="block text-sm font-medium text-gray-700">Time</label>
+                        <input type="time" id="schedule-time" name="schedule-time" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="is-recurring" name="is-recurring" class="h-4 w-4 text-indigo-600 rounded">
+                        <label for="is-recurring" class="text-sm font-medium text-gray-700">Recurring Schedule</label>
+                    </div>
+                    <div id="recurring-options-container" class="space-y-4 hidden">
+                        <div>
+                            <label for="repeat-frequency" class="block text-sm font-medium text-gray-700">Repeat Frequency</label>
+                            <select id="repeat-frequency" name="repeat-frequency" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                        <div id="daily-times-container" class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Daily Times (add more if needed)</label>
+                            <div id="times-list" class="space-y-2">
+                                <!-- Initial time input will be added dynamically by JS -->
+                            </div>
+                            <button type="button" id="add-time-btn" class="w-full py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 transition duration-300">
+                                Add Another Time
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="schedule-details" class="block text-sm font-medium text-gray-700">Details</label>
+                        <textarea id="schedule-details" name="schedule-details" rows="3" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2"></textarea>
+                    </div>
+                    <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition duration-300">
+                        Save Schedule
+                    </button>
+                    <input type="hidden" id="doc-id">
+                </form>
+            </div>
+        </div>
+
+        <!-- Food Inventory Modal -->
+        <div id="inventory-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 hidden">
+            <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-2xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Food Inventory</h3>
+                    <button id="close-inventory-modal-btn" class="text-gray-400 hover:text-gray-600 transition duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="inventory-list" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                    <!-- Inventory items will be rendered here -->
+                </div>
+                <hr class="my-6">
+                <h4 id="inventory-form-title" class="text-lg font-bold text-gray-800 mb-4">Add New Food Item</h4>
+                <form id="inventory-form" class="space-y-4">
+                    <div>
+                        <label for="inventory-item-name" class="block text-sm font-medium text-gray-700">Item Name</label>
+                        <input type="text" id="inventory-item-name" name="inventory-item-name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
+                    </div>
+                    <div>
+                        <label for="inventory-food-type" class="block text-sm font-medium text-gray-700">Food Type</label>
+                        <select id="inventory-food-type" name="inventory-food-type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
+                            <option value="Dry Food">Dry Food</option>
+                            <option value="Wet Food">Wet Food</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="inventory-item-stock" class="block text-sm font-medium text-gray-700">Stock Status</label>
+                        <select id="inventory-item-stock" name="inventory-item-stock" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2">
+                            <option value="In Stock">In Stock</option>
+                            <option value="Low">Low</option>
+                            <option value="Out of Stock">Out of Stock</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="inventory-item-notes" class="block text-sm font-medium text-gray-700">Notes (Optional)</label>
+                        <textarea id="inventory-item-notes" name="inventory-item-notes" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2"></textarea>
+                    </div>
+                    <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition duration-300">
+                        Save Item
+                    </button>
+                    <input type="hidden" id="inventory-doc-id">
+                </form>
+            </div>
+        </div>
+        <!-- Custom Message Box for errors/confirmations and notifications -->
+        <div id="message-box" class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white font-semibold transition-transform transform translate-x-full"></div>
+    </div>
+
+    <script type="module">
+        // Data storage keys for localStorage
+        const schedulesStorageKey = 'toeBeanAgendaSchedules';
+        const inventoryStorageKey = 'toeBeanAgendaInventory';
+
+        // UI Elements
+        const appContainer = document.getElementById('app-container');
+        const scheduleList = document.getElementById('schedule-list');
+        const mainActionBtn = document.getElementById('main-action-btn');
+        const actionMenu = document.getElementById('action-menu');
+        const addScheduleBtn = document.getElementById('add-schedule-btn');
+        const manageInventoryBtn = document.getElementById('manage-inventory-btn');
+        const scheduleModal = document.getElementById('schedule-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const scheduleForm = document.getElementById('schedule-form');
+        const scheduleTypeSelect = document.getElementById('schedule-type');
+        const foodBrandContainer = document.getElementById('food-brand-container');
+        const vetTypeContainer = document.getElementById('vet-type-container');
+        const modalTitle = document.getElementById('modal-title');
+        const messageBox = document.getElementById('message-box');
+        const isRecurringCheckbox = document.getElementById('is-recurring');
+        const recurringOptionsContainer = document.getElementById('recurring-options-container');
+        const addTimeBtn = document.getElementById('add-time-btn');
+        const timesList = document.getElementById('times-list');
+        const inventoryModal = document.getElementById('inventory-modal');
+        const closeInventoryModalBtn = document.getElementById('close-inventory-modal-btn');
+        const inventoryList = document.getElementById('inventory-list');
+        const inventoryForm = document.getElementById('inventory-form');
+        const inventoryFormTitle = document.getElementById('inventory-form-title');
+        const inventoryDocIdInput = document.getElementById('inventory-doc-id');
+        const searchInput = document.getElementById('search-input');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const searchToggleBtn = document.getElementById('search-toggle-btn');
+        const searchContainer = document.getElementById('search-container');
+        let isMenuOpen = false;
+
+        // Data storage
+        let schedulesData = [];
+        let inventoryData = [];
+
+        // Function to save data to localStorage
+        const saveDataToLocalStorage = (key, data) => {
+            localStorage.setItem(key, JSON.stringify(data));
+        };
+
+        // Function to load data from localStorage
+        const loadDataFromLocalStorage = () => {
+            const schedulesJson = localStorage.getItem(schedulesStorageKey);
+            schedulesData = schedulesJson ? JSON.parse(schedulesJson) : [];
+            const inventoryJson = localStorage.getItem(inventoryStorageKey);
+            inventoryData = inventoryJson ? JSON.parse(inventoryJson) : [];
+        };
+
+        const showMessage = (text, type = 'success') => {
+            messageBox.textContent = text;
+            messageBox.className = 'fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white font-semibold transition-transform transform translate-x-0';
+
+            if (type === 'success') {
+                messageBox.style.backgroundColor = '#10B981'; // Tailwind green-500
+            } else if (type === 'error') {
+                messageBox.style.backgroundColor = '#EF4444'; // Tailwind red-500
+            } else if (type === 'info') {
+                 messageBox.style.backgroundColor = '#3B82F6'; // Tailwind blue-500
+            }
+
+            setTimeout(() => {
+                messageBox.classList.remove('translate-x-0');
+                messageBox.classList.add('translate-x-full');
+            }, 5000);
+        };
+
+        const scheduleIcons = {
+            'Feeding': `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12a2 2 0 012 2v6a2 2 0 01-2 2H3V5zm0 12h18M3 17a2 2 0 01-2-2m2-12a2 2 0 012-2h8a2 2 0 012 2v6a2 2 0 01-2 2H3a2 2 0 01-2-2V5z" /></svg>`,
+            'Medicine': `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>`,
+            'Walking': `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 20a8 8 0 100-16 8 8 0 000 16z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11V7a1 1 0 012 0v4l3 3" /></svg>`,
+            'Grooming': `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m-3.536 3.536l-3.536 3.536M12 20a8 8 0 100-16 8 8 0 000 16z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 7l4.5 4.5" /></svg>`,
+            'Cleaning': `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10c0 4.418-4.418 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 10a1 1 0 11-2 0 1 1 0 012 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16a4 4 0 100-8 4 4 0 000 8z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21L12 12" /></svg>`,
+            'Vet Appointment': `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h.01M16 14h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`
+        };
+
+        const speciesEmojis = {
+            'cat': '🐱',
+            'dog': '🐶',
+            'other': '🐾'
+        };
+        
+        const renderSchedules = (schedulesToRender = []) => {
+            scheduleList.innerHTML = '';
+            
+            // Only display a message if a search was performed and no results were found.
+            if (schedulesToRender.length === 0 && searchInput.value.trim() !== '') {
+                scheduleList.innerHTML = '<p class="col-span-full text-center text-gray-500 text-lg my-8">No schedules found matching your search.</p>';
+            } else if (schedulesToRender.length > 0) {
+                schedulesToRender.forEach(schedule => {
+                    const scheduleCard = document.createElement('div');
+                    scheduleCard.className = 'bg-gray-50 rounded-lg shadow-md p-4 space-y-2 flex flex-col';
+                    scheduleCard.dataset.id = schedule.id;
+
+                    const icon = scheduleIcons[schedule.scheduleType] || '';
+                    const speciesEmoji = speciesEmojis[schedule.species] || speciesEmojis['other'];
+
+                    let extraDetailsHtml = '';
+                    if (schedule.scheduleType === 'Feeding' && schedule.foodBrand) {
+                        extraDetailsHtml = `<p class="text-sm text-gray-700">Food Brand: <span class="font-semibold">${schedule.foodBrand}</span></p>`;
+                    } else if (schedule.scheduleType === 'Vet Appointment' && schedule.vetType) {
+                        extraDetailsHtml = `<p class="text-sm text-gray-700">Appointment Type: <span class="font-semibold">${schedule.vetType}</span></p>`;
+                    }
+
+                    let dateTimeHtml = '';
+                    if (schedule.isRecurring) {
+                        const firstDate = schedule.startDate;
+                        const dailyTimes = schedule.dailyTimes ? schedule.dailyTimes.join(', ') : 'Not specified';
+                        dateTimeHtml = `<p class="text-sm text-gray-500">Starts: ${firstDate}</p>
+                                        <p class="text-sm text-gray-500">Repeats: <span class="capitalize">${schedule.repeatFrequency}</span> at ${dailyTimes}</p>`;
+                    } else {
+                        const scheduleDateTime = new Date(schedule.dateTime);
+                        const formattedDateTime = scheduleDateTime.toLocaleString('en-US', {
+                            dateStyle: 'medium',
+                            timeStyle: 'short'
+                        });
+                        dateTimeHtml = `<p class="text-sm text-gray-500">Scheduled: ${formattedDateTime}</p>`;
+                    }
+
+                    scheduleCard.innerHTML = `
+                        <div class="flex items-center space-x-2 text-gray-800">
+                            ${icon}
+                            <h4 class="text-lg font-bold">${schedule.petName} ${speciesEmoji}</h4>
+                        </div>
+                        <p class="text-sm text-gray-600 font-semibold">${schedule.scheduleType}</p>
+                        ${extraDetailsHtml}
+                        <p class="text-gray-700">${schedule.details}</p>
+                        <div class="flex-grow"></div>
+                        ${dateTimeHtml}
+                        <div class="flex justify-end space-x-2 mt-4">
+                            <button class="edit-btn text-indigo-600 hover:text-indigo-800 transition duration-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zm-3.535 3.536l-2.828 2.828-4.95 4.95a1 1 0 00-.293.707v4a1 1 0 001 1h4a1 1 0 00.707-.293l4.95-4.95-2.828-2.828z"/></svg>
+                            </button>
+                            <button class="delete-btn text-red-600 hover:text-red-800 transition duration-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                            </button>
+                        </div>
+                    `;
+                    scheduleList.appendChild(scheduleCard);
+                });
+            }
+        };
+
+        const renderInventory = () => {
+            inventoryList.innerHTML = '';
+            if (inventoryData.length === 0) {
+                inventoryList.innerHTML = '<p class="text-gray-500 text-center">No food items added yet.</p>';
+                return;
+            }
+            inventoryData.forEach(item => {
+                const itemCard = document.createElement('div');
+                itemCard.className = 'bg-gray-100 rounded-lg p-4 flex items-center justify-between';
+                itemCard.dataset.id = item.id;
+                let stockColor = 'text-green-600';
+                if (item.stock === 'Low') stockColor = 'text-yellow-600';
+                if (item.stock === 'Out of Stock') stockColor = 'text-red-600';
+
+                itemCard.innerHTML = `
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-800">${item.name}</h4>
+                        <p class="text-sm text-gray-500">${item.foodType || 'N/A'}</p>
+                        <p class="text-sm ${stockColor}">${item.stock}</p>
+                        ${item.notes ? `<p class="text-xs text-gray-500 mt-1">${item.notes}</p>` : ''}
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="edit-inventory-btn text-indigo-600 hover:text-indigo-800 transition duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zm-3.535 3.536l-2.828 2.828-4.95 4.95a1 1 0 00-.293.707v4a1 1 0 001 1h4a1 1 0 00.707-.293l4.95-4.95-2.828-2.828z"/></svg>
+                        </button>
+                        <button class="delete-inventory-btn text-red-600 hover:text-red-800 transition duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                            </button>
+                    </div>
+                `;
+                inventoryList.appendChild(itemCard);
+            });
+        };
+
+        const addTimeInput = (time = '') => {
+            const timeWrapper = document.createElement('div');
+            timeWrapper.className = 'flex items-center space-x-2';
+            timeWrapper.innerHTML = `
+                <input type="time" class="time-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2" value="${time}">
+                <button type="button" class="remove-time-btn text-red-600 hover:text-red-800 transition duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>
+                </button>
+            `;
+            timesList.appendChild(timeWrapper);
+
+            timeWrapper.querySelector('.remove-time-btn').addEventListener('click', () => {
+                timeWrapper.remove();
+            });
+        };
+
+        const openModal = (schedule = null) => {
+            scheduleModal.classList.remove('hidden');
+            scheduleForm.reset();
+            document.getElementById('doc-id').value = '';
+            foodBrandContainer.classList.add('hidden');
+            vetTypeContainer.classList.add('hidden');
+            recurringOptionsContainer.classList.add('hidden');
+            timesList.innerHTML = '';
+            isRecurringCheckbox.checked = false;
+
+            if (schedule) {
+                modalTitle.textContent = 'Edit Schedule';
+                document.getElementById('pet-name').value = schedule.petName;
+                document.getElementById('pet-species').value = schedule.species || '';
+                document.getElementById('schedule-type').value = schedule.scheduleType;
+                document.getElementById('schedule-details').value = schedule.details;
+                document.getElementById('doc-id').value = schedule.id;
+
+                if (schedule.scheduleType === 'Feeding') {
+                    foodBrandContainer.classList.remove('hidden');
+                    document.getElementById('food-brand').value = schedule.foodBrand || '';
+                } else if (schedule.scheduleType === 'Vet Appointment') {
+                    vetTypeContainer.classList.remove('hidden');
+                    document.getElementById('vet-type').value = schedule.vetType || '';
+                }
+
+                if (schedule.isRecurring) {
+                    isRecurringCheckbox.checked = true;
+                    recurringOptionsContainer.classList.remove('hidden');
+                    document.getElementById('repeat-frequency').value = schedule.repeatFrequency;
+                    if (schedule.dailyTimes) {
+                        schedule.dailyTimes.forEach(time => addTimeInput(time));
+                    }
+                    document.getElementById('schedule-date').value = schedule.startDate;
+                } else {
+                    const scheduleDateTime = new Date(schedule.dateTime);
+                    document.getElementById('schedule-date').value = scheduleDateTime.toISOString().slice(0, 10);
+                    document.getElementById('schedule-time').value = scheduleDateTime.toTimeString().slice(0, 5);
+                }
+
+            } else {
+                modalTitle.textContent = 'Add New Schedule';
+                const now = new Date();
+                const formattedDate = now.toISOString().slice(0, 10);
+                const formattedTime = now.toTimeString().slice(0, 5);
+                document.getElementById('schedule-date').value = formattedDate;
+                document.getElementById('schedule-time').value = formattedTime;
+                addTimeInput(formattedTime); // Add an initial time input
+            }
+        };
+
+        const openInventoryModal = () => {
+            inventoryModal.classList.remove('hidden');
+        };
+
+        const closeModal = () => {
+            scheduleModal.classList.add('hidden');
+        };
+
+        const closeInventoryModal = () => {
+            inventoryModal.classList.add('hidden');
+            inventoryForm.reset();
+            inventoryFormTitle.textContent = 'Add New Food Item';
+            inventoryDocIdInput.value = '';
+        };
+
+        const handleFormSubmit = (event) => {
+            event.preventDefault();
+            const petName = document.getElementById('pet-name').value;
+            const species = document.getElementById('pet-species').value;
+            const scheduleType = document.getElementById('schedule-type').value;
+            const details = document.getElementById('schedule-details').value;
+            const docId = document.getElementById('doc-id').value;
+            const isRecurring = isRecurringCheckbox.checked;
+
+            let scheduleData;
+
+            if (isRecurring) {
+                const startDate = document.getElementById('schedule-date').value;
+                const repeatFrequency = document.getElementById('repeat-frequency').value;
+                const dailyTimes = Array.from(document.querySelectorAll('.time-input')).map(input => input.value);
+
+                scheduleData = {
+                    petName,
+                    species,
+                    scheduleType,
+                    details,
+                    isRecurring,
+                    startDate,
+                    dailyTimes: dailyTimes.filter(t => t)
+                };
+            } else {
+                const scheduleDate = document.getElementById('schedule-date').value;
+                const scheduleTime = document.getElementById('schedule-time').value;
+                const dateTime = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
+
+                scheduleData = {
+                    petName,
+                    species,
+                    scheduleType,
+                    details,
+                    isRecurring,
+                    dateTime
+                };
+            }
+
+            if (scheduleType === 'Feeding') {
+                scheduleData.foodBrand = document.getElementById('food-brand').value;
+            } else if (scheduleType === 'Vet Appointment') {
+                scheduleData.vetType = document.getElementById('vet-type').value;
+            }
+            
+            if (docId) {
+                const index = schedulesData.findIndex(s => s.id === docId);
+                if (index !== -1) {
+                    schedulesData[index] = { ...schedulesData[index], ...scheduleData };
+                    showMessage('Schedule updated successfully!');
+                }
+            } else {
+                scheduleData.id = crypto.randomUUID();
+                schedulesData.push(scheduleData);
+                showMessage('Schedule added successfully!');
+            }
+            saveDataToLocalStorage(schedulesStorageKey, schedulesData);
+            
+            // Re-run the search to show the new or updated item
+            searchInput.dispatchEvent(new Event('input'));
+            
+            closeModal();
+        };
+
+        const handleInventoryFormSubmit = (event) => {
+            event.preventDefault();
+            const name = document.getElementById('inventory-item-name').value;
+            const foodType = document.getElementById('inventory-food-type').value;
+            const stock = document.getElementById('inventory-item-stock').value;
+            const notes = document.getElementById('inventory-item-notes').value;
+            const docId = inventoryDocIdInput.value;
+
+            const inventoryItem = {
+                name,
+                foodType,
+                stock,
+                notes
+            };
+            
+            if (docId) {
+                const index = inventoryData.findIndex(i => i.id === docId);
+                if (index !== -1) {
+                    inventoryData[index] = { ...inventoryData[index], ...inventoryItem };
+                    showMessage('Inventory item updated successfully!');
+                }
+            } else {
+                inventoryItem.id = crypto.randomUUID();
+                inventoryData.push(inventoryItem);
+                showMessage('Inventory item added successfully!');
+            }
+            saveDataToLocalStorage(inventoryStorageKey, inventoryData);
+            renderInventory();
+            closeInventoryModal();
+        };
+
+        const handleDeleteClick = (docId) => {
+            const modalConfirm = document.createElement('div');
+            modalConfirm.innerHTML = `
+                <div class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
+                        <p class="text-lg font-semibold text-gray-800 mb-4">Are you sure you want to delete this schedule?</p>
+                        <div class="flex justify-end space-x-4">
+                            <button id="cancel-delete" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-300">Cancel</button>
+                            <button id="confirm-delete" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-300">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modalConfirm);
+
+            document.getElementById('cancel-delete').addEventListener('click', () => {
+                modalConfirm.remove();
+            });
+
+            document.getElementById('confirm-delete').addEventListener('click', () => {
+                schedulesData = schedulesData.filter(s => s.id !== docId);
+                saveDataToLocalStorage(schedulesStorageKey, schedulesData);
+                
+                // Re-run the search to update the list
+                searchInput.dispatchEvent(new Event('input'));
+
+                showMessage('Schedule deleted successfully!', 'info');
+                modalConfirm.remove();
+            });
+        };
+
+        const handleInventoryDeleteClick = (docId) => {
+            const modalConfirm = document.createElement('div');
+            modalConfirm.innerHTML = `
+                <div class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
+                        <p class="text-lg font-semibold text-gray-800 mb-4">Are you sure you want to delete this food item?</p>
+                        <div class="flex justify-end space-x-4">
+                            <button id="cancel-delete" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-300">Cancel</button>
+                            <button id="confirm-delete" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-300">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modalConfirm);
+
+            document.getElementById('cancel-delete').addEventListener('click', () => {
+                modalConfirm.remove();
+            });
+
+            document.getElementById('confirm-delete').addEventListener('click', () => {
+                inventoryData = inventoryData.filter(i => i.id !== docId);
+                saveDataToLocalStorage(inventoryStorageKey, inventoryData);
+                renderInventory();
+                showMessage('Food item deleted successfully!', 'info');
+                modalConfirm.remove();
+            });
+        };
+
+        // Event Listeners
+        mainActionBtn.addEventListener('click', () => {
+            isMenuOpen = !isMenuOpen;
+            if (isMenuOpen) {
+                actionMenu.classList.remove('hidden');
+                actionMenu.classList.add('flex');
+            } else {
+                actionMenu.classList.add('hidden');
+                actionMenu.classList.remove('flex');
+            }
+        });
+        addScheduleBtn.addEventListener('click', () => {
+            openModal();
+            isMenuOpen = false;
+            actionMenu.classList.add('hidden');
+            actionMenu.classList.remove('flex');
+        });
+        manageInventoryBtn.addEventListener('click', () => {
+            openInventoryModal();
+            isMenuOpen = false;
+            actionMenu.classList.add('hidden');
+            actionMenu.classList.remove('flex');
+        });
+        closeModalBtn.addEventListener('click', closeModal);
+        scheduleForm.addEventListener('submit', handleFormSubmit);
+
+        closeInventoryModalBtn.addEventListener('click', closeInventoryModal);
+        inventoryForm.addEventListener('submit', handleInventoryFormSubmit);
+
+        scheduleTypeSelect.addEventListener('change', (e) => {
+            const type = e.target.value;
+            foodBrandContainer.classList.add('hidden');
+            vetTypeContainer.classList.add('hidden');
+            if (type === 'Feeding') {
+                foodBrandContainer.classList.remove('hidden');
+            } else if (type === 'Vet Appointment') {
+                vetTypeContainer.classList.remove('hidden');
+            }
+        });
+
+        isRecurringCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                recurringOptionsContainer.classList.remove('hidden');
+                document.getElementById('schedule-time').disabled = true;
+                timesList.innerHTML = '';
+                addTimeInput();
+            } else {
+                recurringOptionsContainer.classList.add('hidden');
+                document.getElementById('schedule-time').disabled = false;
+            }
+        });
+
+        addTimeBtn.addEventListener('click', () => addTimeInput());
+
+        scheduleList.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-btn');
+            const deleteBtn = e.target.closest('.delete-btn');
+            if (editBtn) {
+                const docId = editBtn.closest('[data-id]').dataset.id;
+                const schedule = schedulesData.find(s => s.id === docId);
+                openModal(schedule);
+            }
+            if (deleteBtn) {
+                const docId = deleteBtn.closest('[data-id]').dataset.id;
+                handleDeleteClick(docId);
+            }
+        });
+
+        inventoryModal.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-inventory-btn');
+            const deleteBtn = e.target.closest('.delete-inventory-btn');
+            if (editBtn) {
+                const docId = editBtn.closest('[data-id]').dataset.id;
+                const item = inventoryData.find(i => i.id === docId);
+                inventoryForm.reset();
+                inventoryFormTitle.textContent = 'Edit Food Item';
+                inventoryDocIdInput.value = item.id;
+                document.getElementById('inventory-item-name').value = item.name;
+                document.getElementById('inventory-food-type').value = item.foodType || 'Dry Food';
+                document.getElementById('inventory-item-stock').value = item.stock;
+                document.getElementById('inventory-item-notes').value = item.notes;
+            }
+            if (deleteBtn) {
+                const docId = deleteBtn.closest('[data-id]').dataset.id;
+                handleInventoryDeleteClick(docId);
+            }
+        });
+        
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            // Show the loading indicator
+            loadingIndicator.classList.remove('hidden');
+            scheduleList.innerHTML = '';
+            
+            // Simulate a short delay for a better user experience
+            setTimeout(() => {
+                const filteredSchedules = schedulesData.filter(schedule => 
+                    schedule.petName.toLowerCase().includes(searchTerm) || 
+                    schedule.scheduleType.toLowerCase().includes(searchTerm) ||
+                    schedule.details.toLowerCase().includes(searchTerm)
+                );
+                renderSchedules(filteredSchedules);
+                // Hide the loading indicator after rendering
+                loadingIndicator.classList.add('hidden');
+            }, 500); // 500ms delay
+        });
+
+        // Initial load
+        window.addEventListener('load', () => {
+            loadDataFromLocalStorage();
+            renderInventory();
+        });
+    </script>
+</body>
+</html>
