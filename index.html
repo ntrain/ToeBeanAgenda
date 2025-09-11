@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toe Bean Agenda (Local)</title>
+    <title>Toe Bean Agenda (Full)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -30,19 +30,19 @@
                 </svg>
                 <h1 class="text-3xl font-bold text-gray-800">Toe Bean Agenda</h1>
             </div>
+            <div class="text-xs text-gray-500 font-medium">User ID: <span id="user-id">Local Storage</span></div>
         </header>
 
         <!-- Main Content Area -->
         <main id="app-container" class="w-full max-w-4xl bg-white p-6 shadow-md rounded-xl border-4 border-green-800">
             <div id="dashboard-view" class="text-center">
-                
                 <h2 class="text-2xl font-semibold mb-4 text-gray-700">Your Pet's Agenda</h2>
                 <div class="flex items-center justify-end space-x-2 mb-6">
-                    <div id="search-container" class="relative max-w-xs overflow-hidden transition-all duration-500 ease-in-out">
+                    <div id="search-container" class="relative max-w-0 overflow-hidden transition-all duration-500 ease-in-out">
                         <input type="text" id="search-input" placeholder="Search by pet's name..." class="w-full px-4 py-2 rounded-md border-2 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 transition duration-300">
                         <div id="loading-indicator" class="text-sm text-indigo-500 mt-2 hidden">Searching...</div>
                     </div>
-                    <button id="search-toggle-btn" class="p-2 rounded-full hover:bg-gray-200 transition duration-300 hidden">
+                    <button id="search-toggle-btn" class="p-2 rounded-full hover:bg-gray-200 transition duration-300">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
@@ -50,7 +50,7 @@
                 </div>
                 <div id="schedule-list" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     <!-- Schedule cards will be added here -->
-                    <p class="col-span-full text-center text-gray-500 text-lg my-8">Use the search bar to find a pet's schedule.</p>
+                    <p class="col-span-full text-center text-gray-500">No schedules found. Start by adding one!</p>
                 </div>
                 <!-- New combined button and menu -->
                 <div class="mt-8 relative">
@@ -64,6 +64,13 @@
                         <button id="manage-inventory-btn" class="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-lg hover:bg-gray-700 transition duration-300">
                             Manage Food Inventory
                         </button>
+                        <button id="export-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition duration-300">
+                            Export Data
+                        </button>
+                        <label for="import-file" class="px-6 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-lg hover:bg-red-700 transition duration-300 cursor-pointer">
+                            Import Data
+                        </label>
+                        <input type="file" id="import-file" accept=".json" class="hidden">
                     </div>
                 </div>
             </div>
@@ -93,6 +100,16 @@
                             <option value="dog">Dog</option>
                             <option value="other">Other</option>
                         </select>
+                    </div>
+                    <div>
+                        <label for="pet-photo" class="block text-sm font-medium text-gray-700">Pet Photo</label>
+                        <input type="file" id="pet-photo" name="pet-photo" accept="image/*" class="mt-1 block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-indigo-50 file:text-indigo-700
+                            hover:file:bg-indigo-100 transition duration-300
+                            cursor-pointer">
                     </div>
                     <div>
                         <label for="schedule-type" class="block text-sm font-medium text-gray-700">Schedule Type</label>
@@ -215,11 +232,7 @@
         <div id="message-box" class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white font-semibold transition-transform transform translate-x-full"></div>
     </div>
 
-    <script type="module">
-        // Data storage keys for localStorage
-        const schedulesStorageKey = 'toeBeanAgendaSchedules';
-        const inventoryStorageKey = 'toeBeanAgendaInventory';
-
+    <script>
         // UI Elements
         const appContainer = document.getElementById('app-container');
         const scheduleList = document.getElementById('schedule-list');
@@ -249,35 +262,30 @@
         const loadingIndicator = document.getElementById('loading-indicator');
         const searchToggleBtn = document.getElementById('search-toggle-btn');
         const searchContainer = document.getElementById('search-container');
+        const exportBtn = document.getElementById('export-btn');
+        const importFile = document.getElementById('import-file');
+        const petPhotoInput = document.getElementById('pet-photo');
         let isMenuOpen = false;
+        let petPhotoBase64 = null;
 
         // Data storage
         let schedulesData = [];
         let inventoryData = [];
-
-        // Function to save data to localStorage
-        const saveDataToLocalStorage = (key, data) => {
-            localStorage.setItem(key, JSON.stringify(data));
-        };
-
-        // Function to load data from localStorage
-        const loadDataFromLocalStorage = () => {
-            const schedulesJson = localStorage.getItem(schedulesStorageKey);
-            schedulesData = schedulesJson ? JSON.parse(schedulesJson) : [];
-            const inventoryJson = localStorage.getItem(inventoryStorageKey);
-            inventoryData = inventoryJson ? JSON.parse(inventoryJson) : [];
-        };
-
+        let notificationSentIds = new Set();
+        
+        // Helper function to generate a simple unique ID
+        const generateId = () => '_' + Math.random().toString(36).substr(2, 9);
+        
         const showMessage = (text, type = 'success') => {
             messageBox.textContent = text;
             messageBox.className = 'fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white font-semibold transition-transform transform translate-x-0';
 
             if (type === 'success') {
-                messageBox.style.backgroundColor = '#10B981'; // Tailwind green-500
+                messageBox.style.backgroundColor = '#10B981';
             } else if (type === 'error') {
-                messageBox.style.backgroundColor = '#EF4444'; // Tailwind red-500
+                messageBox.style.backgroundColor = '#EF4444';
             } else if (type === 'info') {
-                 messageBox.style.backgroundColor = '#3B82F6'; // Tailwind blue-500
+                 messageBox.style.backgroundColor = '#3B82F6';
             }
 
             setTimeout(() => {
@@ -301,12 +309,11 @@
             'other': '🐾'
         };
         
-        const renderSchedules = (schedulesToRender = []) => {
+        const renderSchedules = (schedulesToRender = schedulesData) => {
             scheduleList.innerHTML = '';
             
-            // Only display a message if a search was performed and no results were found.
             if (schedulesToRender.length === 0 && searchInput.value.trim() !== '') {
-                scheduleList.innerHTML = '<p class="col-span-full text-center text-gray-500 text-lg my-8">No schedules found matching your search.</p>';
+                scheduleList.innerHTML = '<p class="col-span-full text-center text-gray-500">No schedules found matching your search.</p>';
             } else if (schedulesToRender.length > 0) {
                 schedulesToRender.forEach(schedule => {
                     const scheduleCard = document.createElement('div');
@@ -338,10 +345,15 @@
                         dateTimeHtml = `<p class="text-sm text-gray-500">Scheduled: ${formattedDateTime}</p>`;
                     }
 
+                    const photoHtml = schedule.photo ? `<img src="${schedule.photo}" alt="Photo of ${schedule.petName}" class="w-24 h-24 rounded-full mx-auto mb-2 object-cover border-2 border-gray-300">` : '';
+
                     scheduleCard.innerHTML = `
-                        <div class="flex items-center space-x-2 text-gray-800">
-                            ${icon}
-                            <h4 class="text-lg font-bold">${schedule.petName} ${speciesEmoji}</h4>
+                        <div class="flex flex-col items-center justify-center">
+                            ${photoHtml}
+                            <div class="flex items-center space-x-2 text-gray-800">
+                                ${icon}
+                                <h4 class="text-lg font-bold">${schedule.petName} ${speciesEmoji}</h4>
+                            </div>
                         </div>
                         <p class="text-sm text-gray-600 font-semibold">${schedule.scheduleType}</p>
                         ${extraDetailsHtml}
@@ -421,6 +433,7 @@
             recurringOptionsContainer.classList.add('hidden');
             timesList.innerHTML = '';
             isRecurringCheckbox.checked = false;
+            petPhotoBase64 = null;
 
             if (schedule) {
                 modalTitle.textContent = 'Edit Schedule';
@@ -429,7 +442,8 @@
                 document.getElementById('schedule-type').value = schedule.scheduleType;
                 document.getElementById('schedule-details').value = schedule.details;
                 document.getElementById('doc-id').value = schedule.id;
-
+                petPhotoBase64 = schedule.photo || null;
+                
                 if (schedule.scheduleType === 'Feeding') {
                     foodBrandContainer.classList.remove('hidden');
                     document.getElementById('food-brand').value = schedule.foodBrand || '';
@@ -459,7 +473,7 @@
                 const formattedTime = now.toTimeString().slice(0, 5);
                 document.getElementById('schedule-date').value = formattedDate;
                 document.getElementById('schedule-time').value = formattedTime;
-                addTimeInput(formattedTime); // Add an initial time input
+                addTimeInput(formattedTime);
             }
         };
 
@@ -478,7 +492,7 @@
             inventoryDocIdInput.value = '';
         };
 
-        const handleFormSubmit = (event) => {
+        const handleFormSubmit = async (event) => {
             event.preventDefault();
             const petName = document.getElementById('pet-name').value;
             const species = document.getElementById('pet-species').value;
@@ -488,6 +502,7 @@
             const isRecurring = isRecurringCheckbox.checked;
 
             let scheduleData;
+            const photo = petPhotoBase64;
 
             if (isRecurring) {
                 const startDate = document.getElementById('schedule-date').value;
@@ -501,7 +516,8 @@
                     details,
                     isRecurring,
                     startDate,
-                    dailyTimes: dailyTimes.filter(t => t)
+                    dailyTimes: dailyTimes.filter(t => t),
+                    photo
                 };
             } else {
                 const scheduleDate = document.getElementById('schedule-date').value;
@@ -514,7 +530,8 @@
                     scheduleType,
                     details,
                     isRecurring,
-                    dateTime
+                    dateTime,
+                    photo
                 };
             }
 
@@ -531,15 +548,12 @@
                     showMessage('Schedule updated successfully!');
                 }
             } else {
-                scheduleData.id = crypto.randomUUID();
-                schedulesData.push(scheduleData);
+                const newSchedule = { id: generateId(), ...scheduleData };
+                schedulesData.push(newSchedule);
                 showMessage('Schedule added successfully!');
             }
-            saveDataToLocalStorage(schedulesStorageKey, schedulesData);
-            
-            // Re-run the search to show the new or updated item
-            searchInput.dispatchEvent(new Event('input'));
-            
+            saveData();
+            renderSchedules();
             closeModal();
         };
 
@@ -565,11 +579,11 @@
                     showMessage('Inventory item updated successfully!');
                 }
             } else {
-                inventoryItem.id = crypto.randomUUID();
-                inventoryData.push(inventoryItem);
+                const newItem = { id: generateId(), ...inventoryItem };
+                inventoryData.push(newItem);
                 showMessage('Inventory item added successfully!');
             }
-            saveDataToLocalStorage(inventoryStorageKey, inventoryData);
+            saveData();
             renderInventory();
             closeInventoryModal();
         };
@@ -595,11 +609,8 @@
 
             document.getElementById('confirm-delete').addEventListener('click', () => {
                 schedulesData = schedulesData.filter(s => s.id !== docId);
-                saveDataToLocalStorage(schedulesStorageKey, schedulesData);
-                
-                // Re-run the search to update the list
-                searchInput.dispatchEvent(new Event('input'));
-
+                saveData();
+                renderSchedules();
                 showMessage('Schedule deleted successfully!', 'info');
                 modalConfirm.remove();
             });
@@ -626,13 +637,86 @@
 
             document.getElementById('confirm-delete').addEventListener('click', () => {
                 inventoryData = inventoryData.filter(i => i.id !== docId);
-                saveDataToLocalStorage(inventoryStorageKey, inventoryData);
+                saveData();
                 renderInventory();
                 showMessage('Food item deleted successfully!', 'info');
                 modalConfirm.remove();
             });
         };
 
+        const loadData = () => {
+            try {
+                const storedSchedules = localStorage.getItem('schedules');
+                if (storedSchedules) {
+                    schedulesData = JSON.parse(storedSchedules);
+                    schedulesData.sort((a, b) => {
+                        const dateA = a.isRecurring ? new Date(a.startDate) : new Date(a.dateTime);
+                        const dateB = b.isRecurring ? new Date(b.startDate) : new Date(b.dateTime);
+                        return dateA - dateB;
+                    });
+                }
+                const storedInventory = localStorage.getItem('inventory');
+                if (storedInventory) {
+                    inventoryData = JSON.parse(storedInventory);
+                }
+            } catch (e) {
+                console.error("Could not load data from localStorage", e);
+                schedulesData = [];
+                inventoryData = [];
+            }
+            renderSchedules();
+            renderInventory();
+        };
+
+        const saveData = () => {
+            localStorage.setItem('schedules', JSON.stringify(schedulesData));
+            localStorage.setItem('inventory', JSON.stringify(inventoryData));
+        };
+        
+        // Notification Logic
+        const requestNotificationPermission = () => {
+            if (!("Notification" in window)) {
+                return;
+            }
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    showMessage("Notification permission granted!", "success");
+                }
+            });
+        };
+
+        const sendNotification = (schedule) => {
+            if (Notification.permission === "granted") {
+                new Notification(`Reminder for ${schedule.petName}`, {
+                    body: `${schedule.scheduleType} is scheduled now!`,
+                    icon: schedule.photo || 'https://placehold.co/48x48/5EEAD4/000?text=Pet'
+                });
+                // Add the schedule ID to the set to prevent duplicate notifications
+                notificationSentIds.add(schedule.id);
+            }
+        };
+
+        const checkAndSendNotifications = () => {
+            const now = new Date();
+            const schedulesToCheck = schedulesData.filter(s => s.isRecurring === false);
+
+            schedulesToCheck.forEach(schedule => {
+                // Skip if a notification has already been sent for this schedule
+                if (notificationSentIds.has(schedule.id)) {
+                    return;
+                }
+
+                const scheduleTime = new Date(schedule.dateTime);
+                const timeDiff = scheduleTime.getTime() - now.getTime();
+                const minutesDiff = timeDiff / (1000 * 60);
+
+                // Send notification 5 minutes before the event
+                if (minutesDiff > 0 && minutesDiff <= 5) {
+                    sendNotification(schedule);
+                }
+            });
+        };
+        
         // Event Listeners
         mainActionBtn.addEventListener('click', () => {
             isMenuOpen = !isMenuOpen;
@@ -724,11 +808,9 @@
         searchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase();
             
-            // Show the loading indicator
             loadingIndicator.classList.remove('hidden');
             scheduleList.innerHTML = '';
             
-            // Simulate a short delay for a better user experience
             setTimeout(() => {
                 const filteredSchedules = schedulesData.filter(schedule => 
                     schedule.petName.toLowerCase().includes(searchTerm) || 
@@ -736,16 +818,87 @@
                     schedule.details.toLowerCase().includes(searchTerm)
                 );
                 renderSchedules(filteredSchedules);
-                // Hide the loading indicator after rendering
                 loadingIndicator.classList.add('hidden');
-            }, 500); // 500ms delay
+            }, 500);
         });
 
-        // Initial load
-        window.addEventListener('load', () => {
-            loadDataFromLocalStorage();
-            renderInventory();
+        searchToggleBtn.addEventListener('click', () => {
+            searchContainer.classList.toggle('max-w-0');
+            searchContainer.classList.toggle('max-w-xs');
+            
+            if (!searchContainer.classList.contains('max-w-0')) {
+                searchInput.focus();
+            } else {
+                searchInput.value = '';
+                searchInput.dispatchEvent(new Event('input'));
+            }
         });
+
+        // Export data functionality
+        exportBtn.addEventListener('click', () => {
+            const dataToExport = {
+                schedules: schedulesData,
+                inventory: inventoryData
+            };
+            const jsonString = JSON.stringify(dataToExport, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'toe-bean-agenda-data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage('Data exported successfully!', 'success');
+        });
+
+        // Import data functionality
+        importFile.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData.schedules && importedData.inventory) {
+                        schedulesData = importedData.schedules;
+                        inventoryData = importedData.inventory;
+                        saveData();
+                        renderSchedules();
+                        renderInventory();
+                        showMessage('Data imported successfully! Your agenda has been updated.', 'success');
+                    } else {
+                        showMessage('Invalid file format. Please import a valid Toe Bean Agenda JSON file.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error parsing JSON file:', error);
+                    showMessage('Error importing file. Please check the file format.', 'error');
+                }
+            };
+            reader.readAsText(file);
+        });
+        
+        // Pet Photo file reader
+        petPhotoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    petPhotoBase64 = reader.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Initial data load and notification permission request
+        loadData();
+        requestNotificationPermission();
+
+        // Check for upcoming schedules every minute
+        setInterval(checkAndSendNotifications, 60000);
     </script>
 </body>
 </html>
